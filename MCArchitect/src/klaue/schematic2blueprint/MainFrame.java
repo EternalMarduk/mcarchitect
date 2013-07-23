@@ -1,10 +1,10 @@
 package klaue.schematic2blueprint;
 
 import java.awt.AWTEvent;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
-import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Point;
@@ -20,7 +20,6 @@ import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.io.File;
 import java.io.IOException;
-import java.util.Hashtable;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -39,6 +38,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
+import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -59,6 +59,7 @@ import com.mcarchitect.resources.IconFactory;
  * The main frame and initializer of the app
  * 
  * @author klaue
+ * @author Fernando Marquardt
  */
 public class MainFrame extends JFrame implements ActionListener, ChangeListener {
 
@@ -66,7 +67,7 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
     SliceStack stack = null;
     ImageGridStack images = null;
     GridBagConstraints defaultContraints = new GridBagConstraints();
-    double currentZoom = 0;
+    double minZoom = 0.5, maxZoom = 10, currentZoom = 0, defaultZoom = 1, zoomRatio = 0.5;
     Color gridLineColor = Color.BLACK;
     Color markColor = Color.RED;
     int currentLayer = 0;
@@ -78,14 +79,15 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
     JMenuItem miOpen, miExportImages, miExportGif, miExportLayer, miExportTxt, miBackgroundColor, miLineColor,
             miMarkColor, miBlockCounter, miPrintSlice, miPrintAll;
 
-    JButton btnRotateCCW;
-    JButton btnRotateCW;
+    JToolBar tbTools = new JToolBar();
 
-    JSlider sldZoom = new JSlider();
+    JButton btnOpen;
+    JButton btnRotateCCW, btnRotateCW;
+    JButton btnZoomIn, btnZoomOut;
+
     JSlider sldLayer = new JSlider(SwingConstants.VERTICAL);
 
     JPanel pnlAll = new JPanel();
-    JPanel pnlControl = new JPanel();
     JPanel pnlRotate = new JPanel();
     JPanel pnlSchematic = new JPanel();
     JPanel pnlGrid = new JPanel();
@@ -102,7 +104,7 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
             System.exit(1);
         }
 
-        setTitle("Schematic2Blueprint");
+        setTitle("MCArchitect");
         setSize(500, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -226,16 +228,16 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
 
         setJMenuBar(menuBar);
 
-        // layout mgrs
-        pnlAll.setLayout(new BoxLayout(pnlAll, BoxLayout.Y_AXIS));
-        pnlRotate.setLayout(new BoxLayout(pnlRotate, BoxLayout.X_AXIS));
-        pnlControl.setLayout(new BoxLayout(pnlControl, BoxLayout.X_AXIS));
-        pnlSchematic.setLayout(new BoxLayout(pnlSchematic, BoxLayout.X_AXIS));
+        // Toolbar
+        tbTools.setFloatable(false);
 
-        pnlGrid.setLayout(new GridBagLayout());
-        pnlGrid.setBackground(Color.BLUE);
+        btnOpen = new JButton("Open");
+        btnOpen.setActionCommand("OPEN");
+        btnOpen.addActionListener(this);
 
-        // init buttons
+        tbTools.add(btnOpen);
+        tbTools.addSeparator();
+
         btnRotateCW = new JButton(IconFactory.TURN_CW);
         btnRotateCW.setActionCommand("RCW");
         btnRotateCW.addActionListener(this);
@@ -243,23 +245,29 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
         btnRotateCCW.setActionCommand("RCCW");
         btnRotateCCW.addActionListener(this);
 
-        // init sliders
-        sldZoom.setBorder(BorderFactory.createTitledBorder("Zoom"));
-        sldZoom.setMaximum(100);
-        sldZoom.setMinimum(5);
-        sldZoom.setValue(10);
-        sldZoom.setMajorTickSpacing(10);
-        sldZoom.setMinorTickSpacing(5);
-        sldZoom.setPaintTicks(true);
-        sldZoom.setPaintLabels(true);
-        sldZoom.setSnapToTicks(true);
-        sldZoom.addChangeListener(this);
+        tbTools.add(btnRotateCCW);
+        tbTools.add(btnRotateCW);
+        tbTools.addSeparator();
 
-        Hashtable<Integer, JComponent> zoomLabelTable = new Hashtable<Integer, JComponent>();
-        for (int i = 0; i <= 100; i += 10) {
-            zoomLabelTable.put(new Integer(i), new JLabel(Integer.toString(i / 10)));
-        }
-        sldZoom.setLabelTable(zoomLabelTable);
+        btnZoomIn = new JButton("Zoom+");
+        btnZoomIn.setActionCommand("ZOOMIN");
+        btnZoomIn.addActionListener(this);
+        btnZoomOut = new JButton("Zoom-");
+        btnZoomOut.setActionCommand("ZOOMOUT");
+        btnZoomOut.addActionListener(this);
+
+        tbTools.add(btnZoomIn);
+        tbTools.add(btnZoomOut);
+
+        // layout mgrs
+        pnlAll.setLayout(new BoxLayout(pnlAll, BoxLayout.Y_AXIS));
+        pnlRotate.setLayout(new BoxLayout(pnlRotate, BoxLayout.X_AXIS));
+        pnlSchematic.setLayout(new BoxLayout(pnlSchematic, BoxLayout.X_AXIS));
+
+        pnlGrid.setLayout(new GridBagLayout());
+        pnlGrid.setBackground(Color.BLUE);
+
+        // init sliders
 
         sldLayer.setBorder(BorderFactory.createTitledBorder("Layer"));
         sldLayer.setMajorTickSpacing(1);
@@ -274,19 +282,6 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
         // default states
         enableSchematicControls(false);
 
-        // set layout
-        pnlRotate.add(btnRotateCCW);
-        pnlRotate.add(Box.createHorizontalStrut(5));
-        pnlRotate.add(btnRotateCW);
-        pnlRotate.setBorder(BorderFactory.createTitledBorder("Rotate"));
-        pnlRotate.setMaximumSize(new Dimension(pnlRotate.getPreferredSize().width, sldZoom.getPreferredSize().height));
-
-        pnlControl.add(pnlRotate);
-        pnlControl.add(Box.createHorizontalStrut(10));
-        pnlControl.add(sldZoom);
-        pnlControl
-                .setMaximumSize(new Dimension(pnlControl.getMaximumSize().width, pnlControl.getPreferredSize().height));
-
         scrGrid = new JScrollPane(pnlGrid);
 
         long eventMask = AWTEvent.MOUSE_MOTION_EVENT_MASK + AWTEvent.MOUSE_EVENT_MASK;
@@ -299,11 +294,11 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
 
         lblSize.setAlignmentX(SwingConstants.LEFT);
 
-        pnlAll.add(pnlControl);
         pnlAll.add(Box.createVerticalStrut(5));
         pnlAll.add(pnlSchematic);
         pnlAll.add(lblSize);
         pnlAll.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        this.add(tbTools, BorderLayout.NORTH);
         this.add(pnlAll);
 
         setLocationRelativeTo(null);
@@ -313,16 +308,17 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
     private void enableSchematicControls(boolean enable) {
         btnRotateCCW.setEnabled(enable);
         btnRotateCW.setEnabled(enable);
+        btnZoomIn.setEnabled(enable);
+        btnZoomOut.setEnabled(enable);
         sldLayer.setEnabled(enable);
-        sldZoom.setEnabled(enable);
         exportMenu.setEnabled(enable);
         miBlockCounter.setEnabled(enable);
         printMenu.setEnabled(enable);
     }
 
     @Override
-    public void actionPerformed(ActionEvent arg0) {
-        if (arg0.getActionCommand().equals("OPEN")) {
+    public void actionPerformed(ActionEvent event) {
+        if (event.getActionCommand().equals("OPEN")) {
             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
             int returnVal = fc.showOpenDialog(this);
@@ -332,9 +328,8 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
                 try {
                     stack = SchematicReader.readSchematicsFile(file);
                     stack.trim();
-                    double zoom = ((double) sldZoom.getValue() / 10);
-                    currentZoom = zoom;
-                    images = stack.getImages(zoom, true);
+                    currentZoom = defaultZoom;
+                    images = stack.getImages(currentZoom, true);
                     images.setGridColor(gridLineColor);
                     images.setMarkColor(markColor);
                     if (SchematicReader.hasErrorHappened()) {
@@ -393,15 +388,16 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
                 System.gc();
             }
             this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-        } else if (arg0.getActionCommand().equals("RCCW") || arg0.getActionCommand().equals("RCW")) {
+        } else if (event.getActionCommand().equals("RCCW") || event.getActionCommand().equals("RCW")) {
             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-            if (arg0.getActionCommand().equals("RCCW")) {
+
+            if (event.getActionCommand().equals("RCCW")) {
                 stack.turnCCW();
             } else {
                 stack.turnCW();
             }
-            double zoom = ((double) sldZoom.getValue() / 10);
-            images = stack.getImages(zoom, true);
+
+            images = stack.getImages(currentZoom, true);
 
             pnlGrid.removeAll();
             pnlGrid.add(images.getGridAtLevel(currentLayer), defaultContraints);
@@ -409,7 +405,7 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
             scrGrid.validate();
             lblSize.setText("Size: " + stack.getLength() + " x " + stack.getWidth());
             this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-        } else if (arg0.getActionCommand().equals("EXPSINGLE")) {
+        } else if (event.getActionCommand().equals("EXPSINGLE")) {
             JFileChooser fc = new JFileChooser();
 
             fc.setCurrentDirectory(this.fc.getCurrentDirectory());
@@ -446,11 +442,11 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
                     }
                 }
             }
-        } else if (arg0.getActionCommand().equals("EXPMULTI")) {
+        } else if (event.getActionCommand().equals("EXPMULTI")) {
             new ExportDialog(this, stack, images, fc.getSelectedFile(), pnlGrid.getBackground(), false);
-        } else if (arg0.getActionCommand().equals("EXPGIF")) {
+        } else if (event.getActionCommand().equals("EXPGIF")) {
             new ExportDialog(this, stack, images, fc.getSelectedFile(), pnlGrid.getBackground(), true);
-        } else if (arg0.getActionCommand().equals("EXPTXT")) {
+        } else if (event.getActionCommand().equals("EXPTXT")) {
             JFileChooser fc = new JFileChooser();
 
             fc.setCurrentDirectory(this.fc.getCurrentDirectory());
@@ -481,12 +477,12 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
                     }
                 }
             }
-        } else if (arg0.getActionCommand().equals("COLOR_BACKGROUND")) {
+        } else if (event.getActionCommand().equals("COLOR_BACKGROUND")) {
             Color newColor = JColorChooser.showDialog(this, "Choose Background Color", pnlGrid.getBackground());
             if (newColor != null) {
                 pnlGrid.setBackground(newColor);
             }
-        } else if (arg0.getActionCommand().equals("COLOR_LINE")) {
+        } else if (event.getActionCommand().equals("COLOR_LINE")) {
             Color newColor = JColorChooser.showDialog(this, "Choose Line Color", gridLineColor);
             if (newColor != null) {
                 gridLineColor = newColor;
@@ -495,7 +491,7 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
                     pnlGrid.repaint();
                 }
             }
-        } else if (arg0.getActionCommand().equals("COLOR_MARK")) {
+        } else if (event.getActionCommand().equals("COLOR_MARK")) {
             Color newColor = JColorChooser.showDialog(this, "Choose Marker Color", markColor);
             if (newColor != null) {
                 markColor = newColor;
@@ -504,9 +500,9 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
                     pnlGrid.repaint();
                 }
             }
-        } else if (arg0.getActionCommand().equals("BLOCKCOUNTER")) {
+        } else if (event.getActionCommand().equals("BLOCKCOUNTER")) {
             new BlockCounterDialog(this, stack);
-        } else if (arg0.getActionCommand().equals("PRINTSLICE")) {
+        } else if (event.getActionCommand().equals("PRINTSLICE")) {
             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             PrinterJob printJob = PrinterJob.getPrinterJob();
             printJob.setPrintable(images.getGridAtLevel(currentLayer));
@@ -520,7 +516,7 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
                             "Could not print", JOptionPane.ERROR_MESSAGE);
                 }
             }
-        } else if (arg0.getActionCommand().equals("PRINTALL")) {
+        } else if (event.getActionCommand().equals("PRINTALL")) {
             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             PrinterJob printJob = PrinterJob.getPrinterJob();
             printJob.setPrintable(images);
@@ -534,30 +530,41 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
                             "Could not print", JOptionPane.ERROR_MESSAGE);
                 }
             }
-        }
+        } else if (event.getActionCommand().equals("ZOOMIN")) {
+        	if (currentZoom < maxZoom) {
+            	currentZoom += zoomRatio;
 
+            	setGridZoom(currentZoom);
+        	}
+        } else if (event.getActionCommand().equals("ZOOMOUT")) {
+        	if (currentZoom > minZoom) {
+        		currentZoom -= zoomRatio;
+
+    			setGridZoom(currentZoom);
+        	}
+        }
+    }
+
+    private void setGridZoom(double zoom) {
+    	setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+    	images.setZoom(zoom);
+
+    	pnlGrid.repaint();
+    	scrGrid.validate();
+
+    	setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
     }
 
     @Override
     public void stateChanged(ChangeEvent e) {
         JSlider source = (JSlider) e.getSource();
+
         if (source.getValueIsAdjusting()) {
             return;
         }
-        if (source == sldZoom) {
-            double zoom = ((double) sldZoom.getValue() / 10);
-            if (zoom == currentZoom) {
-                return;
-            }
-            currentZoom = zoom;
-            this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
-            images.setZoom(zoom);
-
-            pnlGrid.repaint();
-            scrGrid.validate();
-            this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-        } else if (source == sldLayer) {
+        if (source == sldLayer) {
             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             Point markedPoint = images.getGridAtLevel(currentLayer).getMarkedBlock();
             currentLayer = sldLayer.getValue() - 1;
