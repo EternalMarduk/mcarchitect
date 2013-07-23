@@ -49,8 +49,9 @@ public class ImageProvider {
      * @throws URISyntaxException
      */
     public static synchronized void initialize() throws IOException, URISyntaxException {
-        if (!blockImages.isEmpty())
+        if (!blockImages.isEmpty()) {
             return; // allready inizialized
+        }
 
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 
@@ -62,12 +63,13 @@ public class ImageProvider {
 
         // load letters from font.png
         BufferedImage font = ImageIO.read(ClassLoader.getSystemResource("klaue/mcschematictool/font.png"));
-        int width = font.getWidth() / 16;
-        int height = font.getHeight() / 16;
-        letterimages = new BufferedImage[width][];
-        for (int x = 0; x < width; ++x) {
-            letterimages[x] = new BufferedImage[height];
-            for (int y = 0; y < height; ++y) {
+        int rows = 16, cols = 16;
+        letterimages = new BufferedImage[cols][];
+
+        for (int x = 0; x < cols; ++x) {
+            letterimages[x] = new BufferedImage[rows];
+
+            for (int y = 0; y < rows; ++y) {
                 letterimages[x][y] = font.getSubimage(x * 8, y * 8, 8, 8);
             }
         }
@@ -115,8 +117,9 @@ public class ImageProvider {
      *         empty for normal characters)
      */
     public final static synchronized BufferedImage[] stringToImage(String text, int color) {
-        if (letterimages == null)
+        if (letterimages == null) {
             return null;
+        }
 
         byte[] ascii;
 
@@ -131,10 +134,14 @@ public class ImageProvider {
         BufferedImage[] imageText = new BufferedImage[ascii.length];
         for (int i = 0; i < ascii.length; ++i) {
             byte character = ascii[i];
-            // because the 256 characters are in a 16x16 grid and in the ASCII ordering, we can take the upper 4 bits as
-            // the vertical and the lower
-            // 4 bits as the horizontal index
-            BufferedImage charImg = letterimages[character & 0x0F][character >> 4];
+            BufferedImage charImg = letterimages[15][3];
+
+            if ((character & 0x0F) < letterimages.length && (character >> 4) < letterimages[character & 0x0F].length) {
+                // because the 256 characters are in a 16x16 grid and in the ASCII ordering, we can take the upper 4
+                // bits as the vertical and the lower
+                // 4 bits as the horizontal index
+                charImg = letterimages[character & 0x0F][character >> 4];
+            }
 
             // java seems to have no quick'n'easy way to replace a color, sooo.. instead of wasting time with a filter,
             // color model stuff etc,
@@ -142,7 +149,7 @@ public class ImageProvider {
             if (color != 0xFFFFFFFF) {
                 charImg = copyImage(charImg);
                 for (int x = 0; x < charImg.getWidth(); ++x) {
-                    for (int y = 0; y < charImg.getWidth(); ++y) {
+                    for (int y = 0; y < charImg.getHeight(); ++y) {
                         if (charImg.getRGB(x, y) == 0xFFFFFFFF) {
                             charImg.setRGB(x, y, color);
                         }
@@ -163,8 +170,9 @@ public class ImageProvider {
      */
     public final static synchronized BufferedImage getSignPlaneCopy() {
         BufferedImage sign = tooltipImages.get("sign");
-        if (sign == null)
+        if (sign == null) {
             return null;
+        }
         return copyImage(sign);
     }
 
@@ -175,8 +183,9 @@ public class ImageProvider {
      */
     public final static synchronized BufferedImage getChestPlaneCopy() {
         BufferedImage chest = tooltipImages.get("chest");
-        if (chest == null)
+        if (chest == null) {
             return null;
+        }
         return copyImage(chest);
     }
 
@@ -187,8 +196,9 @@ public class ImageProvider {
      */
     public final static synchronized BufferedImage getDispenserPlaneCopy() {
         BufferedImage dispenser = tooltipImages.get("dispenser");
-        if (dispenser == null)
+        if (dispenser == null) {
             return null;
+        }
         return copyImage(dispenser);
     }
 
@@ -199,8 +209,9 @@ public class ImageProvider {
      */
     public final static synchronized BufferedImage getHopperPlaneCopy() {
         BufferedImage dispenser = tooltipImages.get("hopper");
-        if (dispenser == null)
+        if (dispenser == null) {
             return null;
+        }
         return copyImage(dispenser);
     }
 
@@ -211,8 +222,9 @@ public class ImageProvider {
      */
     public final static synchronized BufferedImage getBrewingStandPlaneCopy() {
         BufferedImage brewingStand = tooltipImages.get("brewingstand");
-        if (brewingStand == null)
+        if (brewingStand == null) {
             return null;
+        }
         return copyImage(brewingStand);
     }
 
@@ -263,8 +275,9 @@ public class ImageProvider {
      * @return the rotated image (or the given image if angle is 0)
      */
     public static BufferedImage rotateImage(double degrees, final BufferedImage img) {
-        if (degrees == 0)
+        if (degrees == 0) {
             return img;
+        }
 
         // note: width and height do not have to be inverted for all cases, but it doesn't matter anyway because the
         // images
@@ -288,8 +301,9 @@ public class ImageProvider {
      */
     public static BufferedImage multiplyImage(final BufferedImage source, Color overlayColor)
             throws InterruptedException {
-        if (source == null)
+        if (source == null) {
             return null;
+        }
 
         int width = source.getWidth();
         int height = source.getHeight();
@@ -610,8 +624,9 @@ public class ImageProvider {
                         return ImageProvider.getImage("crops_7");
                 }
             case 60: // farmland
-                if (data >= 4)
+                if (data >= 4) {
                     return ImageProvider.getImage("farmland_wet");
+                }
                 return ImageProvider.getImage("farmland_dry");
             case 61:
                 return ImageProvider.getImage("furnace_front");
@@ -620,8 +635,9 @@ public class ImageProvider {
             case 63:
                 return ImageProvider.getItemImage("sign");
             case 64: // wooden door
-                if ((data & 8) == 0)
+                if ((data & 8) == 0) {
                     return ImageProvider.getImage("doorWood_lower");
+                }
                 return ImageProvider.getImage("doorWood_upper");
             case 65:
                 return ImageProvider.getImage("ladder");
@@ -637,8 +653,9 @@ public class ImageProvider {
             case 70:
                 return ImageProvider.getAdditionalImage("pressureplate_stone");
             case 71: // iron door
-                if ((data & 8) == 0)
+                if ((data & 8) == 0) {
                     return ImageProvider.getImage("doorIron_lower");
+                }
                 return ImageProvider.getImage("doorIron_upper");
             case 72:
                 return ImageProvider.getAdditionalImage("pressureplate_wood");
@@ -710,8 +727,9 @@ public class ImageProvider {
                     case 10:
                         return ImageProvider.getImage("mushroom_skin_stem");
                     default: // hood piece
-                        if (id == 99)
+                        if (id == 99) {
                             return ImageProvider.getImage("mushroom_skin_brown");
+                        }
                         return ImageProvider.getImage("mushroom_skin_red");
                 }
             case 101:
@@ -754,8 +772,9 @@ public class ImageProvider {
             case 119:
                 return ImageProvider.getImage("dragonEgg"); // End Portal
             case 120: // end portal frame
-                if ((data & 4) != 0)
+                if ((data & 4) != 0) {
                     return ImageProvider.getAdditionalImage("endframe_fixed");
+                }
                 return ImageProvider.getImage("endframe_top");
             case 121:
                 return ImageProvider.getImage("whiteStone"); // End Stone
@@ -796,8 +815,9 @@ public class ImageProvider {
             case 138:
                 return ImageProvider.getImage("beacon");
             case 139:
-                if (data == 1)
+                if (data == 1) {
                     return ImageProvider.getAdditionalImage("walls_mossycobble");
+                }
                 return ImageProvider.getAdditionalImage("walls_cobble");
             case 140:
                 return ImageProvider.getItemImage("flowerPot");
@@ -1264,14 +1284,16 @@ public class ImageProvider {
             throws IOException, URISyntaxException {
         TreeMap<String, BufferedImage> images = new TreeMap<String, BufferedImage>();
         String paramPath = dirPath;
-        if (!paramPath.endsWith("/"))
+        if (!paramPath.endsWith("/")) {
             paramPath += "/";
+        }
 
         String[] fileNames = getResourceListing(classLoader, paramPath);
 
         for (String fileName : fileNames) {
-            if (!fileName.endsWith(".png"))
+            if (!fileName.endsWith(".png")) {
                 continue;
+            }
 
             // save the name and the image to the map
             BufferedImage img = ImageIO.read(ClassLoader.getSystemResource(paramPath + fileName));
