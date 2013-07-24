@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
+import javax.swing.AbstractButton;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -62,6 +63,8 @@ import com.mcarchitect.resources.IconFactory;
  * @author Fernando Marquardt
  */
 public class MainFrame extends JFrame implements ActionListener, ChangeListener {
+
+    private static final long serialVersionUID = 1L;
 
     JFileChooser fc = new JFileChooser();
     SliceStack stack = null;
@@ -108,15 +111,15 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
         setSize(500, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        String[] filetypes = { "shematic", "schematic", "shematics", "schematics" };
-        fc.setFileFilter(new FiletypeFilter(filetypes, "Schematic-Files"));
+        String[] filetypes = { "schematic", "schematics" };
+        fc.setFileFilter(new FiletypeFilter(filetypes, "Schematic Files (*.schematic;*.schematics)"));
 
         // make the menu
         fileMenu = new JMenu("File");
         fileMenu.setMnemonic(KeyEvent.VK_F);
         fileMenu.getAccessibleContext().setAccessibleDescription("The file menu");
 
-        miOpen = new JMenuItem("Open schematic file", UIManager.getIcon("FileView.directoryIcon"));
+        miOpen = new JMenuItem("Open schematic file", IconFactory.OPEN_16);
         miOpen.setMnemonic(KeyEvent.VK_O);
         miOpen.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, ActionEvent.CTRL_MASK));
         miOpen.getAccessibleContext().setAccessibleDescription("This opens a schematic file");
@@ -231,17 +234,20 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
         // Toolbar
         tbTools.setFloatable(false);
 
-        btnOpen = new JButton("Open");
+        btnOpen = new JButton(IconFactory.OPEN_32);
+        btnOpen.setToolTipText("Open");
         btnOpen.setActionCommand("OPEN");
         btnOpen.addActionListener(this);
 
         tbTools.add(btnOpen);
         tbTools.addSeparator();
 
-        btnRotateCW = new JButton(IconFactory.TURN_CW);
+        btnRotateCW = new JButton(IconFactory.TURN_CW_32);
+        btnRotateCW.setToolTipText("Turn Clock-Wise");
         btnRotateCW.setActionCommand("RCW");
         btnRotateCW.addActionListener(this);
-        btnRotateCCW = new JButton(IconFactory.TURN_CCW);
+        btnRotateCCW = new JButton(IconFactory.TURN_CCW_32);
+        btnRotateCCW.setToolTipText("Turn Counter Clock-Wise");
         btnRotateCCW.setActionCommand("RCCW");
         btnRotateCCW.addActionListener(this);
 
@@ -249,15 +255,23 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
         tbTools.add(btnRotateCW);
         tbTools.addSeparator();
 
-        btnZoomIn = new JButton("Zoom+");
+        btnZoomIn = new JButton(IconFactory.ZOOM_IN_32);
+        btnZoomIn.setToolTipText("Zoom In");
         btnZoomIn.setActionCommand("ZOOMIN");
         btnZoomIn.addActionListener(this);
-        btnZoomOut = new JButton("Zoom-");
+        btnZoomOut = new JButton(IconFactory.ZOOM_OUT_32);
+        btnZoomOut.setToolTipText("Zoom Out");
         btnZoomOut.setActionCommand("ZOOMOUT");
         btnZoomOut.addActionListener(this);
 
         tbTools.add(btnZoomIn);
         tbTools.add(btnZoomOut);
+
+        for (Component child : tbTools.getComponents()) {
+            if (child instanceof AbstractButton) {
+                ((AbstractButton) child).setFocusPainted(false);
+            }
+        }
 
         // layout mgrs
         pnlAll.setLayout(new BoxLayout(pnlAll, BoxLayout.Y_AXIS));
@@ -357,6 +371,9 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
                         message = message.substring(0, 500) + "...";
                     }
                     JOptionPane cleanupPane = new JOptionPane(message, JOptionPane.ERROR_MESSAGE) {
+
+                        private static final long serialVersionUID = 1L;
+
                         @Override
                         public int getMaxCharactersPerLineCount() {
                             return 100; // this is unimplemented in normal joptionpane for whatever reason
@@ -531,29 +548,29 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
                 }
             }
         } else if (event.getActionCommand().equals("ZOOMIN")) {
-        	if (currentZoom < maxZoom) {
-            	currentZoom += zoomRatio;
+            if (currentZoom < maxZoom) {
+                currentZoom += zoomRatio;
 
-            	setGridZoom(currentZoom);
-        	}
+                setGridZoom(currentZoom);
+            }
         } else if (event.getActionCommand().equals("ZOOMOUT")) {
-        	if (currentZoom > minZoom) {
-        		currentZoom -= zoomRatio;
+            if (currentZoom > minZoom) {
+                currentZoom -= zoomRatio;
 
-    			setGridZoom(currentZoom);
-        	}
+                setGridZoom(currentZoom);
+            }
         }
     }
 
     private void setGridZoom(double zoom) {
-    	setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
-    	images.setZoom(zoom);
+        images.setZoom(zoom);
 
-    	pnlGrid.repaint();
-    	scrGrid.validate();
+        pnlGrid.repaint();
+        scrGrid.validate();
 
-    	setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+        setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
     }
 
     @Override
