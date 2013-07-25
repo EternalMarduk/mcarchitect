@@ -20,6 +20,7 @@ import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.io.File;
 import java.io.IOException;
+import java.util.prefs.Preferences;
 
 import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
@@ -54,6 +55,9 @@ import klaue.mcschematictool.SliceStack;
 import klaue.mcschematictool.exceptions.ClassicNotSupportedException;
 import klaue.mcschematictool.exceptions.ParseException;
 
+import org.apache.commons.lang3.StringUtils;
+
+import com.mcarchitect.Application;
 import com.mcarchitect.resources.IconFactory;
 
 /**
@@ -97,6 +101,12 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
     JScrollPane scrGrid;
 
     JLabel lblSize = new JLabel();
+    
+    private File loadingFile;
+
+    public static String PREF_KEY_LAST_SELECTED_PATH = "last_selected_path";
+    
+    public static String PREF_KEY_RECENTLY_OPENED = "recently_opened";
 
     public MainFrame() { // Made public until further change
         try {
@@ -111,62 +121,17 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
         setSize(500, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        Preferences pref = Preferences.userNodeForPackage(Application.class);
+
         String[] filetypes = { "schematic", "schematics" };
         fc.setFileFilter(new FiletypeFilter(filetypes, "Schematic Files (*.schematic;*.schematics)"));
+        fc.setCurrentDirectory(new File(pref.get(PREF_KEY_LAST_SELECTED_PATH, "")));
 
         // make the menu
-        fileMenu = new JMenu("File");
+    	fileMenu = new JMenu("File");
         fileMenu.setMnemonic(KeyEvent.VK_F);
         fileMenu.getAccessibleContext().setAccessibleDescription("The file menu");
-
-        miOpen = new JMenuItem("Open schematic file", IconFactory.OPEN_16);
-        miOpen.setMnemonic(KeyEvent.VK_O);
-        miOpen.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, ActionEvent.CTRL_MASK));
-        miOpen.getAccessibleContext().setAccessibleDescription("This opens a schematic file");
-        miOpen.setActionCommand("OPEN");
-        miOpen.addActionListener(this);
-        fileMenu.add(miOpen);
-
-        exportMenu = new JMenu("Export");
-        exportMenu.setMnemonic(KeyEvent.VK_E);
-
-        miExportLayer = new JMenuItem("Current layer", UIManager.getIcon("FileView.floppyDriveIcon"));
-        miExportLayer.setMnemonic(KeyEvent.VK_C);
-        // this.miExportLayer.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, ActionEvent.ALT_MASK));
-        miExportLayer.getAccessibleContext().setAccessibleDescription("This saves the current layer as a single file");
-        miExportLayer.setActionCommand("EXPSINGLE");
-        miExportLayer.addActionListener(this);
-        exportMenu.add(miExportLayer);
-
-        miExportImages = new JMenuItem("One image per layer", UIManager.getIcon("FileChooser.upFolderIcon"));
-        miExportImages.setMnemonic(KeyEvent.VK_O);
-        // this.miExportImages.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, ActionEvent.ALT_MASK));
-        miExportImages.getAccessibleContext().setAccessibleDescription(
-                "This saves the current schematic as multiple images");
-        miExportImages.setActionCommand("EXPMULTI");
-        miExportImages.addActionListener(this);
-        exportMenu.add(miExportImages);
-
-        miExportGif = new JMenuItem("To an animated Gif", UIManager.getIcon("FileView.floppyDriveIcon"));
-        miExportGif.setMnemonic(KeyEvent.VK_G);
-        // this.miExportGif.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, ActionEvent.ALT_MASK));
-        miExportGif.getAccessibleContext().setAccessibleDescription(
-                "This saves the current schematic as a single animated gif file");
-        miExportGif.setActionCommand("EXPGIF");
-        miExportGif.addActionListener(this);
-        exportMenu.add(miExportGif);
-
-        miExportTxt = new JMenuItem("To a Textfile (Builders-Mod compatible)",
-                UIManager.getIcon("FileView.floppyDriveIcon"));
-        miExportTxt.setMnemonic(KeyEvent.VK_T);
-        // this.miExportGif.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, ActionEvent.ALT_MASK));
-        miExportTxt.getAccessibleContext().setAccessibleDescription(
-                "This saves the current schematic as a Builders-compatible text file");
-        miExportTxt.setActionCommand("EXPTXT");
-        miExportTxt.addActionListener(this);
-        exportMenu.add(miExportTxt);
-
-        fileMenu.add(exportMenu);
+        populateFileMenu();
         menuBar.add(fileMenu);
 
         colorMenu = new JMenu("Color");
@@ -319,6 +284,96 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
         setVisible(true);
     }
 
+    public void addRecentlyOpened(String filename) {
+    	Preferences pref = Preferences.userNodeForPackage(Application.class);
+    	String recentlyOpened = pref.get(PREF_KEY_LAST_SELECTED_PATH, "");
+
+    	if (StringUtils.contains(recentlyOpened, filename)) {
+    		return;
+    	}
+
+    	if (StringUtils.countMatches(recentlyOpened, ";") >= 9) {
+    		recentlyOpened = recentlyOpened.substring(recentlyOpened.indexOf(';'));
+    	}
+
+    	recentlyOpened += ";" + filename;
+    	pref.put(PREF_KEY_RECENTLY_OPENED, recentlyOpened);
+    }
+
+    private void populateFileMenu() {
+    	fileMenu.removeAll();
+        miOpen = new JMenuItem("Open schematic file", IconFactory.OPEN_16);
+        miOpen.setMnemonic(KeyEvent.VK_O);
+        miOpen.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, ActionEvent.CTRL_MASK));
+        miOpen.getAccessibleContext().setAccessibleDescription("This opens a schematic file");
+        miOpen.setActionCommand("OPEN");
+        miOpen.addActionListener(this);
+        fileMenu.add(miOpen);
+
+        exportMenu = new JMenu("Export");
+        exportMenu.setMnemonic(KeyEvent.VK_E);
+
+        miExportLayer = new JMenuItem("Current layer", UIManager.getIcon("FileView.floppyDriveIcon"));
+        miExportLayer.setMnemonic(KeyEvent.VK_C);
+        // this.miExportLayer.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, ActionEvent.ALT_MASK));
+        miExportLayer.getAccessibleContext().setAccessibleDescription("This saves the current layer as a single file");
+        miExportLayer.setActionCommand("EXPSINGLE");
+        miExportLayer.addActionListener(this);
+        exportMenu.add(miExportLayer);
+
+        miExportImages = new JMenuItem("One image per layer", UIManager.getIcon("FileChooser.upFolderIcon"));
+        miExportImages.setMnemonic(KeyEvent.VK_O);
+        // this.miExportImages.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, ActionEvent.ALT_MASK));
+        miExportImages.getAccessibleContext().setAccessibleDescription(
+                "This saves the current schematic as multiple images");
+        miExportImages.setActionCommand("EXPMULTI");
+        miExportImages.addActionListener(this);
+        exportMenu.add(miExportImages);
+
+        miExportGif = new JMenuItem("To an animated Gif", UIManager.getIcon("FileView.floppyDriveIcon"));
+        miExportGif.setMnemonic(KeyEvent.VK_G);
+        // this.miExportGif.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, ActionEvent.ALT_MASK));
+        miExportGif.getAccessibleContext().setAccessibleDescription(
+                "This saves the current schematic as a single animated gif file");
+        miExportGif.setActionCommand("EXPGIF");
+        miExportGif.addActionListener(this);
+        exportMenu.add(miExportGif);
+
+        miExportTxt = new JMenuItem("To a Textfile (Builders-Mod compatible)",
+                UIManager.getIcon("FileView.floppyDriveIcon"));
+        miExportTxt.setMnemonic(KeyEvent.VK_T);
+        // this.miExportGif.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, ActionEvent.ALT_MASK));
+        miExportTxt.getAccessibleContext().setAccessibleDescription(
+                "This saves the current schematic as a Builders-compatible text file");
+        miExportTxt.setActionCommand("EXPTXT");
+        miExportTxt.addActionListener(this);
+        exportMenu.add(miExportTxt);
+
+        fileMenu.add(exportMenu);
+
+        fileMenu.addSeparator();
+
+        Preferences pref = Preferences.userNodeForPackage(Application.class);
+
+        String recentlyOpened = pref.get(PREF_KEY_RECENTLY_OPENED, "");
+        JMenuItem item;
+
+        for (String path: recentlyOpened.split(";")) {
+        	item = new JMenuItem(path.substring(path.lastIndexOf(File.pathSeparatorChar) + 1));
+        	item.setActionCommand("LOAD");
+        	item.addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent event) {
+					String filepath = ((JMenuItem) event.getSource()).getText();
+					loadFile(new File(filepath));
+				}
+			});
+
+        	fileMenu.add(item);
+        }
+    }
+
     private void enableSchematicControls(boolean enable) {
         btnRotateCCW.setEnabled(enable);
         btnRotateCW.setEnabled(enable);
@@ -335,76 +390,22 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
         if (event.getActionCommand().equals("OPEN")) {
             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
-            int returnVal = fc.showOpenDialog(this);
+            if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            	loadingFile = fc.getSelectedFile();
 
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                File file = fc.getSelectedFile();
-                try {
-                    stack = SchematicReader.readSchematicsFile(file);
-                    stack.trim();
-                    currentZoom = defaultZoom;
-                    images = stack.getImages(currentZoom, true);
-                    images.setGridColor(gridLineColor);
-                    images.setMarkColor(markColor);
-                    if (SchematicReader.hasErrorHappened()) {
-                        JOptionPane.showMessageDialog(null,
-                                "There were some faulty blocks in the schematic. They were replaced with air.",
-                                "Warning", JOptionPane.WARNING_MESSAGE);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-                    JOptionPane.showMessageDialog(null, "Could not read file", "Error", JOptionPane.ERROR_MESSAGE);
-                    return;
-                } catch (ClassicNotSupportedException e) {
-                    e.printStackTrace();
-                    this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-                    JOptionPane.showMessageDialog(null, "Classic file format is not supported",
-                            "Classic not supported", JOptionPane.ERROR_MESSAGE);
-                    return;
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                    this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-                    // Shenanigans to get a multiline option pane
-                    String message = "Could not parse schematics file:\n" + e.getMessage();
-                    if (message.length() > 503) {
-                        message = message.substring(0, 500) + "...";
-                    }
-                    JOptionPane cleanupPane = new JOptionPane(message, JOptionPane.ERROR_MESSAGE) {
+                Preferences pref = Preferences.userNodeForPackage(Application.class);
+                pref.put(PREF_KEY_LAST_SELECTED_PATH, loadingFile.getAbsolutePath());
 
-                        private static final long serialVersionUID = 1L;
+                loadFile(loadingFile);
 
-                        @Override
-                        public int getMaxCharactersPerLineCount() {
-                            return 100; // this is unimplemented in normal joptionpane for whatever reason
-                        }
-                    };
-                    cleanupPane.createDialog(null, "Invalid file").setVisible(true);
-                    return;
-                } catch (OutOfMemoryError e) {
-                    System.gc();
-                    this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
-                    JOptionPane.showMessageDialog(null, "Ran out of memory while trying to open schematic",
-                            "Out of Memory", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                enableSchematicControls(true);
-                if (currentLayer >= images.getStackSize()) {
-                    currentLayer = images.getStackSize() - 1;
-                }
-                sldLayer.setMaximum(images.getStackSize());
-                if (images.getStackSize() == 1) {
-                    sldLayer.setEnabled(false);
-                }
-
-                pnlGrid.removeAll();
-                pnlGrid.add(images.getGridAtLevel(currentLayer), defaultContraints);
-                pnlGrid.repaint();
-                scrGrid.validate();
-                lblSize.setText("Size: " + stack.getLength() + " x " + stack.getWidth());
-                System.gc();
+                addRecentlyOpened(loadingFile.getAbsolutePath());
+                populateFileMenu();
+                loadingFile = null;
             }
             this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+        } else if (event.getActionCommand().equals("LOAD")) {
+        	loadFile(loadingFile);
+        	loadingFile = null;
         } else if (event.getActionCommand().equals("RCCW") || event.getActionCommand().equals("RCW")) {
             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
@@ -560,6 +561,73 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
                 setGridZoom(currentZoom);
             }
         }
+    }
+    
+    private void loadFile(File file) {
+    	try {
+            stack = SchematicReader.readSchematicsFile(file);
+            stack.trim();
+            currentZoom = defaultZoom;
+            images = stack.getImages(currentZoom, true);
+            images.setGridColor(gridLineColor);
+            images.setMarkColor(markColor);
+            if (SchematicReader.hasErrorHappened()) {
+                JOptionPane.showMessageDialog(null,
+                        "There were some faulty blocks in the schematic. They were replaced with air.",
+                        "Warning", JOptionPane.WARNING_MESSAGE);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            JOptionPane.showMessageDialog(null, "Could not read file", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        } catch (ClassicNotSupportedException e) {
+            e.printStackTrace();
+            this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            JOptionPane.showMessageDialog(null, "Classic file format is not supported",
+                    "Classic not supported", JOptionPane.ERROR_MESSAGE);
+            return;
+        } catch (ParseException e) {
+            e.printStackTrace();
+            this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            // Shenanigans to get a multiline option pane
+            String message = "Could not parse schematics file:\n" + e.getMessage();
+            if (message.length() > 503) {
+                message = message.substring(0, 500) + "...";
+            }
+            JOptionPane cleanupPane = new JOptionPane(message, JOptionPane.ERROR_MESSAGE) {
+
+                private static final long serialVersionUID = 1L;
+
+                @Override
+                public int getMaxCharactersPerLineCount() {
+                    return 100; // this is unimplemented in normal joptionpane for whatever reason
+                }
+            };
+            cleanupPane.createDialog(null, "Invalid file").setVisible(true);
+            return;
+        } catch (OutOfMemoryError e) {
+            System.gc();
+            this.setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
+            JOptionPane.showMessageDialog(null, "Ran out of memory while trying to open schematic",
+                    "Out of Memory", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        enableSchematicControls(true);
+        if (currentLayer >= images.getStackSize()) {
+            currentLayer = images.getStackSize() - 1;
+        }
+        sldLayer.setMaximum(images.getStackSize());
+        if (images.getStackSize() == 1) {
+            sldLayer.setEnabled(false);
+        }
+
+        pnlGrid.removeAll();
+        pnlGrid.add(images.getGridAtLevel(currentLayer), defaultContraints);
+        pnlGrid.repaint();
+        scrGrid.validate();
+        lblSize.setText("Size: " + stack.getLength() + " x " + stack.getWidth());
+        System.gc();
     }
 
     private void setGridZoom(double zoom) {
