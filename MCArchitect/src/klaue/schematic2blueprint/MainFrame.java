@@ -646,10 +646,6 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
     public void stateChanged(ChangeEvent e) {
         JSlider source = (JSlider) e.getSource();
 
-        if (source.getValueIsAdjusting()) {
-            return;
-        }
-
         if (source == sldLayer) {
             this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
             Point markedPoint = images.getGridAtLevel(currentLayer).getMarkedBlock();
