@@ -15,7 +15,10 @@ import klaue.mcschematictool.blocktypes.Block;
  * @author klaue
  */
 public class BlockComponent extends JComponent {
-    private Block block = null;
+
+	private static final long serialVersionUID = 1L;
+
+	private Block block = null;
     private double zoom = -1;
 
     /**

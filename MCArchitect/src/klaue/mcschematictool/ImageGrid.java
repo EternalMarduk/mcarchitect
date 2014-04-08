@@ -28,7 +28,10 @@ import klaue.mcschematictool.blocktypes.Block;
  * @author klaue
  */
 public class ImageGrid extends JComponent implements Printable, MouseListener {
-    private Slice slice = null;
+
+	private static final long serialVersionUID = 1L;
+
+	private Slice slice = null;
     private Color gridColor = null;
     private Color markColor = null;
     private double zoom = 1;

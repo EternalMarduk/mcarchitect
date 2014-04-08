@@ -4,10 +4,12 @@ package klaue.mcschematictool.exceptions;
  * Exception for parsing errors
  * 
  * @author klaue
- * 
  */
 public class ParseException extends Exception {
-    /**
+
+	private static final long serialVersionUID = 1L;
+
+	/**
      * @param errorMessage
      * 
      */

@@ -35,9 +35,11 @@ import com.fmsware.AnimatedGifEncoder;
 
 /**
  * @author klaue
- *
  */
 public class ExportDialog extends JDialog {
+
+	private static final long serialVersionUID = 1L;
+
 	String fileNamePrefix = "";
 	ImageGridStack currentGrids;
 	SliceStack sliceStack;

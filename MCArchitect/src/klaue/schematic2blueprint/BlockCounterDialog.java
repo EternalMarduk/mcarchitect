@@ -40,9 +40,11 @@ import klaue.mcschematictool.blocktypes.RedstoneTorch;
 
 /**
  * @author klaue
- *
  */
 public class BlockCounterDialog extends JDialog {
+
+	private static final long serialVersionUID = 1L;
+
 	JPanel all = new JPanel();
 	JPanel labelPanel = new JPanel();
 	JPanel buttonPanel = new JPanel();
@@ -145,6 +147,9 @@ public class BlockCounterDialog extends JDialog {
 		}
 		
 		JTable table = new JTable(rows, colNames) {
+
+			private static final long serialVersionUID = 1L;
+
 			@Override
 			public boolean isCellEditable(int row, int column) {
 				return false;
@@ -290,6 +295,9 @@ class MapEntry implements Comparable<MapEntry> {
 }
 
 class IconTableCellRenderer extends DefaultTableCellRenderer {
+
+	private static final long serialVersionUID = 1L;
+
 	@Override
     public Component getTableCellRendererComponent(JTable table, Object value,
     		boolean isSelected, boolean hasFocus, int row, int column) {

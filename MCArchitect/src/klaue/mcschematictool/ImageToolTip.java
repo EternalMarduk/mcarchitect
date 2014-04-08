@@ -13,7 +13,10 @@ import javax.swing.JToolTip;
  * @author klaue
  */
 public class ImageToolTip extends JToolTip {
-    private BufferedImage image = null;
+
+	private static final long serialVersionUID = 1L;
+
+	private BufferedImage image = null;
 
     /**
      * Initializes the tooltip

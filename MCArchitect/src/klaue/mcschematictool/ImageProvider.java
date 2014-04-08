@@ -1337,6 +1337,7 @@ public class ImageProvider {
             JarFile jar = new JarFile(URLDecoder.decode(jarPath, "UTF-8"));
             Enumeration<JarEntry> entries = jar.entries(); // gives ALL entries in jar
             Set<String> result = new HashSet<String>(); // avoid duplicates in case it is a subdirectory
+            
             while (entries.hasMoreElements()) {
                 String name = entries.nextElement().getName();
                 if (name.startsWith(path)) { // filter according to the path
@@ -1349,6 +1350,11 @@ public class ImageProvider {
                     result.add(entry);
                 }
             }
+            
+            if (jar != null) {
+            	jar.close();
+            }
+            
             return result.toArray(new String[result.size()]);
         }
 
