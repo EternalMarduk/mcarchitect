@@ -132,7 +132,6 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
         fileMenu.setMnemonic(KeyEvent.VK_F);
         fileMenu.getAccessibleContext().setAccessibleDescription("The file menu");
         populateFileMenu();
-        menuBar.add(fileMenu);
 
         colorMenu = new JMenu("Color");
         colorMenu.setMnemonic(KeyEvent.VK_C);
@@ -372,6 +371,8 @@ public class MainFrame extends JFrame implements ActionListener, ChangeListener 
 
         	fileMenu.add(item);
         }
+
+        menuBar.add(fileMenu);
     }
 
     private void enableSchematicControls(boolean enable) {
